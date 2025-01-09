@@ -13,20 +13,53 @@ class WebScraper:
         self.soup = self.get_soup()
         
         # Common product selectors for major e-commerce sites
+        # self.product_selectors = {
+        #     "amazon": {
+        #         "price": "#priceblock_ourprice, .a-price-whole",
+        #         "title": "#productTitle",
+        #         "rating": "#acrPopover",
+        #         "reviews": "#acrCustomerReviewText",
+        #         "availability": "#availability span"
+        #     },
+        #     "ebay": {
+        #         "price": ".x-price-primary",
+        #         "title": ".x-item-title",
+        #         "rating": ".stars-ratings",
+        #         "reviews": ".review-ratings-count",
+        #         "availability": ".quantity-available"
+        #     },
+        #     "daraz": {
+        #         "price": ".pdp-price",
+        #         "title": ".pdp-mod-product-badge-title",
+        #         "rating": ".score",
+        #         "reviews": ".count",
+        #         "availability": ".stock",
+        #         "image_url": ".gallery-preview-panel__image",
+        #         "seller": ".pdp-product-brand a",
+        #         "specifications": ".specification-keys li"
+        #     },
+        #     # Add more e-commerce sites as needed
+        # }
         self.product_selectors = {
             "amazon": {
                 "price": "#priceblock_ourprice, .a-price-whole",
                 "title": "#productTitle",
                 "rating": "#acrPopover",
                 "reviews": "#acrCustomerReviewText",
-                "availability": "#availability span"
+                "availability": "#availability span",
+                "image_url": "#imgTagWrapperId img, #landingImage",  # Added image_url selector for Amazon
+                "seller": "#bylineInfo, #sellerProfileTriggerId",    # Added seller selector for Amazon
+                "specifications": "#productDetails_detailBullets_sections1 tr"  # Added specifications selector for Amazon
             },
             "ebay": {
                 "price": ".x-price-primary",
                 "title": ".x-item-title",
                 "rating": ".stars-ratings",
                 "reviews": ".review-ratings-count",
-                "availability": ".quantity-available"
+                "availability": ".quantity-available",
+                "image_url": ".ux-image-carousel-item img",  # Added image_url selector for eBay
+                "seller": ".ux-seller-section__item--seller a",  # Added seller selector for eBay
+                "specifications": ".ux-layout-section--features .ux-layout-section__item"  # Added specifications selector for eBay
             },
             "daraz": {
                 "price": ".pdp-price",
@@ -40,7 +73,6 @@ class WebScraper:
             },
             # Add more e-commerce sites as needed
         }
-
     def get_soup(self):
         """Fetch and parse the webpage with rotating user agents."""
         headers = {
@@ -78,16 +110,27 @@ class WebScraper:
         # Use site-specific selectors if available
         if site and site in self.product_selectors:
             selectors = self.product_selectors[site]
+            # product_info = {
+            #     "title": self._extract_text(self.soup, selectors["title"]),
+            #     "price": self._extract_price(self.soup, selectors["price"]),
+            #     "currency": self._detect_currency(self.soup, selectors["price"]),
+            #     "rating": self._extract_rating(self.soup, selectors["rating"]),
+            #     "reviews_count": self._extract_reviews_count(self.soup, selectors["reviews"]),
+            #     "availability": self._extract_availability(self.soup, selectors["availability"]),
+            #     "image_url": self._extract_image(self.soup, selectors["image_url"]),
+            #     "seller": self._extract_seller(self.soup, selectors["seller"]),
+            #     "specifications": self._extract_specifications(self.soup, selectors["specifications"])
+            # }
             product_info = {
-                "title": self._extract_text(self.soup, selectors["title"]),
-                "price": self._extract_price(self.soup, selectors["price"]),
-                "currency": self._detect_currency(self.soup, selectors["price"]),
-                "rating": self._extract_rating(self.soup, selectors["rating"]),
-                "reviews_count": self._extract_reviews_count(self.soup, selectors["reviews"]),
-                "availability": self._extract_availability(self.soup, selectors["availability"]),
-                "image_url": self._extract_image(self.soup, selectors["image_url"]),
-                "seller": self._extract_seller(self.soup, selectors["seller"]),
-                "specifications": self._extract_specifications(self.soup, selectors["specifications"])
+                "title": self._extract_text(self.soup, selectors.get("title")),
+                "price": self._extract_price(self.soup, selectors.get("price")),
+                "currency": self._detect_currency(self.soup, selectors.get("price")),
+                "rating": self._extract_rating(self.soup, selectors.get("rating")),
+                "reviews_count": self._extract_reviews_count(self.soup, selectors.get("reviews")),
+                "availability": self._extract_availability(self.soup, selectors.get("availability")),
+                "image_url": self._extract_image(self.soup, selectors.get("image_url")),
+                "seller": self._extract_seller(self.soup, selectors.get("seller")),
+                "specifications": self._extract_specifications(self.soup, selectors.get("specifications"))
             }
             if product_info["title"] and product_info["price"]:
                 product_data["products"].append(product_info)
@@ -157,9 +200,15 @@ class WebScraper:
         """Extract product availability status."""
         return self._extract_text(element, selector or '.availability, .stock-status, [class*="stock"]')
 
+    # def _extract_image(self, element, selector=None):
+    #     """Extract product image URL."""
+    #     img = element.select_one(selector or 'img')
+    #     return urljoin(self.url, img['src']) if img and 'src' in img.attrs else None
     def _extract_image(self, element, selector=None):
         """Extract product image URL."""
-        img = element.select_one(selector or 'img')
+        if selector is None:
+            return None
+        img = element.select_one(selector)
         return urljoin(self.url, img['src']) if img and 'src' in img.attrs else None
 
     def _extract_seller(self, element, selector=None):

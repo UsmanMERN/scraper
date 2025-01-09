@@ -7,25 +7,70 @@
     <title>Advanced Web Scraper</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <style>
+        /* Truncate long URLs */
+        .truncate-url {
+            max-width: 200px; /* Adjust as needed */
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: inline-block;
+        }
+
+        /* Ensure modal preformatted text wraps */
+        .modal-content-pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: 0.9rem;
+        }
+
+        /* Make tables more compact on smaller screens */
+        @media (max-width: 768px) {
+            .table-responsive-lg {
+                overflow-x: auto;
+            }
+            .table td, .table th {
+                padding: 0.5rem;
+            }
+        }
+    </style>
 </head>
 
 <body>
     <div class="container-fluid mt-4">
-        <h1 class="text-center mb-4">Advanced Web Scraper</h1>
+        <h1 class="text-center mb-4 display-5">Advanced Web Scraper</h1>
 
         <!-- Flash Messages -->
         {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
+    {% if messages %}
         {% for category, message in messages %}
-        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-            {{ message }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-        {% endfor %}
-        {% endif %}
-        {% endwith %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show d-flex align-items-center mx-auto my-3" style="max-width: 90%; width: 600px;">
+                <!-- Add icons based on the category -->
+                {% if category == 'success' %}
+                    <i class="fas fa-check-circle me-2"></i>
+                {% elif category == 'danger' %}
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                {% elif category == 'warning' %}
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                {% elif category == 'info' %}
+                    <i class="fas fa-info-circle me-2"></i>
+                {% else %}
+                    <i class="fas fa-bell me-2"></i>
+                {% endif %}
 
-        <!-- Add this after the flash messages in index.html -->
+                <!-- Message content -->
+                <div class="flex-grow-1" style="overflow-y: auto; max-height: 200px;">
+                    {{ message }}
+                </div>
+
+                <!-- Close button -->
+                <button type="button" class="btn-close ms-2" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+
+        <!-- Debug Information -->
         {% if debug_info %}
         <div class="card mb-4">
             <div class="card-body">
@@ -35,19 +80,26 @@
             </div>
         </div>
         {% endif %}
+
         <!-- Scrape Form -->
         <div class="card mb-4">
             <div class="card-body">
                 <form method="POST" class="mb-0">
-                    <div class="input-group">
-                        <input type="url" class="form-control" name="url" placeholder="Enter URL to scrape" required>
-                        <select class="form-select" name="scrape_type">
-                            <option value="general">General Scraping</option>
-                            <option value="products">Product Scraping</option>
-                        </select>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-search"></i> Scrape
-                        </button>
+                    <div class="row g-3">
+                        <div class="col-12 col-md-8">
+                            <input type="url" class="form-control" name="url" placeholder="Enter URL to scrape" required>
+                        </div>
+                        <div class="col-12 col-md-2">
+                            <select class="form-select" name="scrape_type">
+                                <option value="general">General Scraping</option>
+                                <option value="products">Product Scraping</option>
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-2">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-search"></i> Scrape
+                            </button>
+                        </div>
                     </div>
                 </form>
             </div>
@@ -57,7 +109,7 @@
         <div class="card mb-4">
             <div class="card-body">
                 <h2 class="card-title mb-4">General Scraped Data</h2>
-                <div class="table-responsive">
+                <div class="table-responsive-lg">
                     <table id="resultsTable" class="table table-striped table-hover">
                         <thead>
                             <tr>
@@ -72,7 +124,11 @@
                         <tbody>
                             {% for row in data %}
                             <tr>
-                                <td>{{ row.url }}</td>
+                                <td>
+                                    <span class="truncate-url" data-bs-toggle="tooltip" title="{{ row.url }}">
+                                        {{ row.url }}
+                                    </span>
+                                </td>
                                 <td>
                                     <button class="btn btn-sm btn-info" data-bs-toggle="modal"
                                         data-bs-target="#dataModal" data-bs-content="{{ row.emails|tojson }}">
@@ -110,7 +166,7 @@
         <div class="card">
             <div class="card-body">
                 <h2 class="card-title mb-4">Product Scraped Data</h2>
-                <div class="table-responsive">
+                <div class="table-responsive-lg">
                     <table id="productTable" class="table table-striped table-hover">
                         <thead>
                             <tr>
@@ -126,7 +182,11 @@
                         <tbody>
                             {% for row in product_data %}
                             <tr>
-                                <td>{{ row.url }}</td>
+                                <td>
+                                    <span class="truncate-url" data-bs-toggle="tooltip" title="{{ row.url }}">
+                                        {{ row.url }}
+                                    </span>
+                                </td>
                                 <td>{{ row.title }}</td>
                                 <td>{{ row.price }} {{ row.currency }}</td>
                                 <td>{{ row.rating }}</td>
@@ -187,6 +247,12 @@
                 const modalPre = document.querySelector('.modal-content-pre');
                 modalPre.textContent = JSON.stringify(data, null, 2);
                 modal.show();
+            });
+
+            // Enable Bootstrap tooltips
+            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+                new bootstrap.Tooltip(tooltipTriggerEl);
             });
         });
 
